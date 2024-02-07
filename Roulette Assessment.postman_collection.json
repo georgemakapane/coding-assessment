@@ -1,0 +1,114 @@
+{
+	"info": {
+		"_postman_id": "98a515f5-fb99-49a0-ba88-4f976756a6ed",
+		"name": "Roulette Assessment",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "14659866"
+	},
+	"item": [
+		{
+			"name": "Place Bet",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"userName\": \"JohnDoe\",\r\n    \"betNumber\": 1,\r\n    \"amount\": 100\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://localhost:5001/roulette/placebet"
+			},
+			"response": []
+		},
+		{
+			"name": "Spin",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:5001/roulette/spin?userName=JohnDoe",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"roulette",
+						"spin"
+					],
+					"query": [
+						{
+							"key": "userName",
+							"value": "JohnDoe"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Payout",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:5001/roulette/payout?userName=JohnDoe&betAmount=100&winningNumber=24",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"roulette",
+						"payout"
+					],
+					"query": [
+						{
+							"key": "userName",
+							"value": "JohnDoe"
+						},
+						{
+							"key": "betAmount",
+							"value": "100"
+						},
+						{
+							"key": "winningNumber",
+							"value": "24"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Spin History",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:5001/roulette/spinhistory?userName=JohnDoe",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "5001",
+					"path": [
+						"roulette",
+						"spinhistory"
+					],
+					"query": [
+						{
+							"key": "userName",
+							"value": "JohnDoe"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

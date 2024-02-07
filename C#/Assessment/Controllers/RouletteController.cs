@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net;
-using System.Threading.Tasks;
+using Assessment.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Assessment.Controllers
@@ -11,8 +7,15 @@ namespace Assessment.Controllers
     [Route("[controller]")]
     public class RouletteController : ControllerBase
     {
-        private List<int> spinsHistory = new List<int>();
-        private readonly Random random = new Random();
+        private readonly RouletteDbContext _dbContext;
+
+        public RouletteController(RouletteDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
+        private readonly List<int> spinsHistory = new();
+        private readonly Random random = new();
 
         /// <summary>
         /// Place a bet
@@ -22,37 +25,69 @@ namespace Assessment.Controllers
         /// <returns></returns>
 
         [HttpPost("placebet")]
-        public ActionResult PlaceBet(int betNumber, int amount)
+        public ActionResult PlaceBet([FromBody] BetRequestModel model)
         {
-            if (betNumber < 0 || betNumber > 36)
-                return BadRequest("Invalid bet number. Bet number must be between 0 and 36.");
+            var user = _dbContext.User.FirstOrDefault(u => u.UserName == model.UserName);
+            if (user == null)
+            {
+                return BadRequest("User not found.");
+            }
 
-            if (amount <= 0)
-                return BadRequest("Invalid bet amount. Bet amount must be greater than 0.");
+            user.Balance += model.Amount;
+            var bet = new Bet
+            {
+                UserId = user.UserId,
+                BetNumber = model.BetNumber,
+                Amount = model.Amount
+            };
+            _dbContext.Bet.Add(bet);
+            _dbContext.User.Update(user);
+            _dbContext.SaveChanges();
 
-            return Ok($"Bet placed on number {betNumber} for {amount} credits.");
+            return Ok("Bet placed successfully.");
         }
 
         /// <summary>
         /// Stimulates spinning the roulette wheel
         /// </summary>
         /// <returns></returns>
-        [HttpPost("spin")]
-        public ActionResult<int> Spin()
+        [HttpGet("spin")]
+        public ActionResult<int> Spin(string userName)
         {
-            int result = random.Next(0, 37);
-            spinsHistory.Add(result);
-            return Ok(result);
+            int spin = random.Next(0, 37);
+            spinsHistory.Add(spin);
+            var user = _dbContext.User.FirstOrDefault(u => u.UserName == userName);
+            if (user == null)
+            {
+                return BadRequest("User not found.");
+            }
+            var SpinHistory = new SpinHistory()
+            {
+                UserId = user.UserId,
+                Username = user.UserName,
+                SpinResult = spin,
+                SpinDateTime = DateTime.Now
+            };
+            _dbContext.SpinHistory.Add(SpinHistory);
+            _dbContext.SaveChanges();
+
+            return Ok(new { spin });
         }
 
         /// <summary>
         /// Returns the history of previous spins
         /// </summary>
         /// <returns></returns>
-        [HttpGet("spinshistory")]
-        public ActionResult<IEnumerable<int>> ShowPreviousSpins()
+        [HttpGet("spinhistory")]
+        public ActionResult<IEnumerable<int>> ShowPreviousSpins(string userName)
         {
-            return Ok(spinsHistory);
+            var spinHistory = _dbContext.SpinHistory.Where(s => s.Username == userName).ToList();
+            if (spinHistory is null || !spinHistory.Any())
+            {
+                return BadRequest("No previous spins for user.");
+            }
+
+            return Ok(spinHistory);
         }
 
         /// <summary>
@@ -61,25 +96,25 @@ namespace Assessment.Controllers
         /// <param name="winningNumber"></param>
         /// <param name="betAmount"></param>
         /// <returns></returns>
-        [HttpPost("payout")]
-        public ActionResult<int> Payout(int winningNumber, int betAmount)
+        [HttpGet("payout")]
+        public ActionResult<int> Payout(string userName, int winningNumber, int betAmount)
         {
-            if (spinsHistory.Count == 0)
+            var user = _dbContext.User.FirstOrDefault(u => u.UserName == userName);
+            if (user == null)
+            {
+                return BadRequest("User not found.");
+            }
+            var spinHistory = _dbContext.SpinHistory.Where(s => s.Username == userName).ToList();
+            if (spinHistory is null || !spinHistory.Any())
                 return BadRequest("No spins yet.");
 
-            if (!spinsHistory.Contains(winningNumber))
-                return BadRequest($"Winning number {winningNumber} has not been spun yet.");
+            var winningSpin = spinHistory.FirstOrDefault(sh => sh.SpinResult == winningNumber);
+            if (winningSpin is null)
+                return BadRequest($"Winning number: {winningNumber} has not been spun yet.");
 
-            // Calculate the winning number
-            if (winningNumber == spinsHistory.Last())
-            {
-                int payout = betAmount * 35;
-                return Ok(payout);
-            }
-            else
-            {
-                return Ok(0);
-            }
+            var payOut = betAmount * winningNumber;
+
+            return Ok(new { payOut });
         }
     }
 }
